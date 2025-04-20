@@ -15,13 +15,14 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.ensemble import RandomForestClassifier
 
 from google.colab import drive
 drive.mount('/content/drive')
 
 file_path = "/content/drive/MyDrive/Global_Cybersecurity_Threats_2015-2024.csv"
 data = pd.read_csv(file_path) # Use pd.read_csv to read a CSV file
-print(data.head())
+data.head()
 
 #Print the shape (rows, columns) of the dataset
 print("Shape:", data.shape)
@@ -131,82 +132,18 @@ mapping = {
 data['Defense Mechanism Used'] = data['Defense Mechanism Used'].map(mapping)
 data.head()
 
-# #Define a list of missing categorical data and fill with "Unknown"
-# categorical_cols = [
-#     'Defense Mechanism Used',
-#     'Security Vulnerability Type',
-#     'Attack Source',
-#     'Attack Type',
-#     'Target Industry'
-# ]
-
-# #Loop through each categorical column and fill missing values with 'Unknown'
-# for col in categorical_cols:
-#     data[col] = data[col].fillna("Unknown")
-
-# #Drop rows where any of the essential numeric values are missing
-# data.dropna(subset=['Financial Loss (in Million $)', 'Number of Affected Users', 'Incident Resolution Time (in Hours)', 'Country'], inplace=True)
-
-# #Standardize column names by removing spaces, parentheses, and dollar signs
-# data.columns = data.columns.str.replace(' ', '_')
-# # data.columns = data.columns.str.replace('(', '')
-# # data.columns = data.columns.str.replace(')', '')
-# #data.columns = data.columns.str.replace('$', '')
-
-# #Convert 'year' to integer type
-# data['year'] = data['Year'].astype(int)
-# #Convert 'Financial Loss (in Million $)' to numeric
-# data['Financial Loss (in Million $)'] = pd.to_numeric(data['Financial_Loss_in_Million_'], errors='coerce')
-# #Convert 'Number_of_Affected_Users' to numeric
-# data['Number_of_Affected_Users'] = pd.to_numeric(data['Number_of_Affected_Users'], errors='coerce')
-# #Convert 'Incident Resolution Time (in Hours)' to numeric
-# data['Incident Resolution Time (in Hours)'] = pd.to_numeric(data['Incident_Resolution_Time_in_Hours'], errors='coerce')
-
 def prepare_data(features):
     X = data[features].values
     y = data['Incident Resolution Time (in Hours)'].values
     X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    scaler = StandardScaler()
-    X_train = scaler.fit_transform(X_train)
-    X_val = scaler.transform(X_val)
+
 
     return X_train, X_val, y_train, y_val
 
-from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split
-import matplotlib.pyplot as plt
 
-features = data.columns.tolist()[:-1]
-X = data[features].values
-y = data['Incident Resolution Time (in Hours)'].values
 
-# Split data into training and validation sets
-X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
-
-# Scale data
-scaler = StandardScaler()
-X_train = scaler.fit_transform(X_train)
-X_val = scaler.transform(X_val)
-
-# Train the Linear Regression model
-model = LinearRegression()
-model.fit(X_train, y_train)
-
-importances = model.coef_
-
-feature_names = features
-
-indices = importances.argsort()[::-1]
-
-plt.figure(figsize=(10, 6))
-plt.title("Feature Importances")
-plt.bar(range(len(importances)), importances[indices], align="center")
-plt.xticks(range(len(importances)), [feature_names[i] for i in indices], rotation=45)
-plt.tight_layout()
-plt.show()
-
-features = ['Country', 'Attack Type','Year']
+features = ['Country','Attack Type','Year']
 X_train, X_val, y_train, y_val = prepare_data(features)
 
 from sklearn.impute import SimpleImputer
@@ -225,14 +162,13 @@ r2 = r2_score(y_val, y_pred)
 print("Mean Squared Error:", mse)
 print("R-squared:", r2)
 
-# Sort values for clean line plots
 sorted_idx = np.argsort(y_val)
 y_val_sorted = np.array(y_val)[sorted_idx]
 y_pred_sorted = np.array(y_pred)[sorted_idx]
 
 plt.figure(figsize=(12, 6))
 
-# Training data (if y_val is training set)
+# Training data
 plt.subplot(1, 2, 1)
 plt.plot(y_val_sorted, label='Actual', color='blue')
 plt.plot(y_pred_sorted, label='Predicted', color='red')
@@ -242,7 +178,7 @@ plt.ylabel('Incident Resolution Time (Hours)')
 plt.legend()
 plt.grid(True)
 
-# Test data (reusing same here for example)
+# Test data
 plt.subplot(1, 2, 2)
 plt.plot(y_val_sorted, label='Actual', color='blue')
 plt.plot(y_pred_sorted, label='Predicted', color='green')
@@ -255,11 +191,23 @@ plt.grid(True)
 plt.tight_layout()
 plt.show()
 
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
+log_reg = LogisticRegression(max_iter=200)
+log_reg.fit(X_train, y_train)
+y_pred = log_reg.predict(X_val)
 
+print("Accuracy:", accuracy_score(y_val, y_pred))
 
+print(data['Attack Type'].value_counts())
 
+rf = RandomForestClassifier(n_estimators=500, random_state=42)
+rf = RandomForestClassifier(n_estimators=300, max_depth=10, random_state=42)
+rf.fit(X_train, y_train)
+y_pred = rf.predict(X_val)
 
+accuracy = accuracy_score(y_val, y_pred)
+print(f"Accuracy: {accuracy}")
 
-
-
+"""\"""
